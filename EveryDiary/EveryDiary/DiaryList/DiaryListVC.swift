@@ -22,7 +22,6 @@ class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
     // Pagenation
     private let paginationManager = PaginationManager()         // 페이지네이션 관리
     private var isLoadingData: Bool = false                     // 데이터 로딩 중을 표시하는 플래그
-    private let imagePrefetcher = ImagePrefetcher()
     
     // Debounce
     private var searchTimer: Timer? // 디바운싱을 위한 타이머
