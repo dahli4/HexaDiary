@@ -125,28 +125,17 @@ extension HonorVC: UICollectionViewDelegateFlowLayout, UICollectionViewDataSourc
         guard let cell = honorCollectionView.dequeueReusableCell(withReuseIdentifier: honorCollectionViewCell.honorIdentifier, for: indexPath) as? honorCollectionViewCell else {
             return UICollectionViewCell()
         }
+        cell.images.image = nil
+        
         let yearMonth = Array(dataByYearMonth.keys)[indexPath.section]
         let numberOfDays = dataByYearMonth[yearMonth]?.count ?? 0
         
-        switch numberOfDays {
-        case 1...7:
-            cell.images.image = UIImage(named: "button1")
-        case 8...14:
-            cell.images.image = UIImage(named: "button2")
-        case 15...21:
-            cell.images.image = UIImage(named: "button3")
-        case 22...27:
-            cell.images.image = UIImage(named: "button4")
-        default:
-            cell.images.image = UIImage(named: "button5")
-        }
-        cell.images.contentMode = .scaleAspectFit
+        cell.configureImage(withNumberOfDays: numberOfDays)
+        
         return cell
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        //        let keys = Array(dataByYearMonth.keys)
-        //        let keyForSection = keys[indexPath.section]
         let yearMonthKey = sortedYearMonths[indexPath.section]
         let daysSet = dataByYearMonth[yearMonthKey]
         

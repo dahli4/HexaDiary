@@ -12,7 +12,7 @@ class honorCollectionViewCell: UICollectionViewCell {
     
     var images: UIImageView = {
         let images = UIImageView()
-        
+        images.contentMode = .scaleAspectFit
         return images
     }()
     
@@ -36,4 +36,19 @@ class honorCollectionViewCell: UICollectionViewCell {
             make.centerX.centerY.equalToSuperview()
         }
     }
+    
+    func configureImage(withNumberOfDays numberOfDays: Int) {
+         switch numberOfDays {
+         case 1...7:
+             images.image = UIImage(named: "button1")
+         case 8...14:
+             images.image = UIImage(named: "button2")
+         case 15...21:
+             images.image = UIImage(named: "button3")
+         case 22...27:
+             images.image = UIImage(named: "button4")
+         default:
+             images.image = UIImage(named: "button5")
+         }
+     }
 }
