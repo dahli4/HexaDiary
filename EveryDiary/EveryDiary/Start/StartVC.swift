@@ -8,6 +8,7 @@
 import UIKit
 
 import SnapKit
+import FirebaseAuth
 
 class StartVC: UIViewController {
     
@@ -52,8 +53,9 @@ class StartVC: UIViewController {
         if currentPageIndex < pageVC.pages.count - 1 {
             moveToNextPage()
         } else {
-            showMainScreen()
             UserDefaults.standard.set(true, forKey: "hasSeenOnboarding")
+            signOut()
+            showMainScreen()
         }
     }
     
@@ -118,6 +120,21 @@ class StartVC: UIViewController {
                 self.pageControl.currentPage = self.currentPageIndex
                 self.updateButtonText()
             }
+        }
+    }
+    
+    private func signOut() {
+        let auth = Auth.auth()
+        do {
+            try auth.signOut()
+            if Auth.auth().currentUser == nil {
+                print("로그아웃 성공!")
+                NotificationCenter.default.post(name: .loginstatusChanged, object: nil)
+            } else {
+                print("로그아웃 실패!")
+            }
+        } catch let signOutError as NSError {
+            print("Error Signing out:  %@", signOutError)
         }
     }
     
