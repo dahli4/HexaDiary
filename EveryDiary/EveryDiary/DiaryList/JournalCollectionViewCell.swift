@@ -12,8 +12,8 @@ import SnapKit
 class JournalCollectionViewCell: UICollectionViewCell {
     static let reuseIdentifier = "JournalCollectionView"
     
-    // 현재 로딩해야 할 이미지의 URL을 저장하는 프로퍼티
-    private var loadingImageURL: URL?
+    // 각 cell이 로딩해야 할 이미지의 URL을 저장하는 프로퍼티
+    var loadingImageURL: URL?
     
     override var isSelected: Bool {
         didSet {
@@ -104,9 +104,6 @@ class JournalCollectionViewCell: UICollectionViewCell {
             emotionIcon.image = emotionImage
         } else {
             emotionIcon.image = nil
-        }
-        if let imageName = imageName {
-            thumnailView.image = UIImage(named: imageName)
         }
     }
     func loadImageAsync(url: URL, completion: @escaping (UIImage?) -> Void) {

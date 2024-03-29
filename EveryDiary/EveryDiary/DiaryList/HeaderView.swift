@@ -10,7 +10,7 @@ import UIKit
 class HeaderView: UICollectionReusableView {
     static let reuseIdentifier = "HeaderView"
     
-    let titleLabel: UILabel = {
+    let headerLabel: UILabel = {
         let label = UILabel()
         label.textColor = .black
         label.font = UIFont.systemFont(ofSize: 16, weight: .bold)
@@ -21,10 +21,6 @@ class HeaderView: UICollectionReusableView {
         super.init(frame: frame)
         setupViews()
     }
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        titleLabel.frame = bounds
-    }
     
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -32,11 +28,10 @@ class HeaderView: UICollectionReusableView {
     }
     
     private func setupViews() {
-        addSubview(titleLabel)
+        addSubview(headerLabel)
         
-        titleLabel.snp.makeConstraints { make in
-            make.centerX.equalToSuperview()
-            make.centerY.equalToSuperview()
+        headerLabel.snp.makeConstraints { make in
+            make.top.leading.equalToSuperview()
         }
     }
 }
