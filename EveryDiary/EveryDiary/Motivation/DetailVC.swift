@@ -38,13 +38,17 @@ class DetailVC: UIViewController {
         return detailView
     }()
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        drawCacheBackBuildingPath()
+        drawCacheBuildingPath()
+        drawWindows()
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setNavigationBar()
         addSubView()
-        drawCacheBackBuildingPath()
-        drawCacheBuildingPath()
-        drawWindows()
         updateImageForMonth()
         autoLayout()
     }
