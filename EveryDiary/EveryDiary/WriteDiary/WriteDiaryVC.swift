@@ -228,7 +228,7 @@ extension WriteDiaryVC {
     }
     // 일기 저장 로직
     @objc func completeButtonTapped1() {
-        print(#function)
+        print("\(#function), \(Date())")
         guard !isSavingDiary, validateInput() else { return }    // 저장 중(=true)이면 실행되지 않음
         isSavingDiary = true                    // 저장 시작
         self.loadingDiaryDelegate?.diaryUploadDidStart()
@@ -309,7 +309,7 @@ extension WriteDiaryVC {
         var uploadedImageURLs = Array(repeating: String?.none, count: imagesLocationInfo.count) // URL 배열을 nil로 초기화
         
         // 이미지와 메타데이터 업로드
-        print("before enter")
+        print("\(#function)start: \(Date())")
         for (index ,imageLocationInfo) in imagesLocationInfo.enumerated() {
             guard let assetIdentifier = imageLocationInfo.assetIdentifier else { continue }
             dispatchGroup.enter()
@@ -324,7 +324,7 @@ extension WriteDiaryVC {
                 location: imageLocationInfo.location
             ) { urls in
                 defer { dispatchGroup.leave() }
-                print("Image Uploaded")
+                print("Image Uploaded: \(Date())")
                 if let url = urls?.first?.absoluteString {
                     uploadedImageURLs[index] = url              // 원본 배열의 순서에 따라 URL 저장
                     return
@@ -332,7 +332,7 @@ extension WriteDiaryVC {
             }
         }
         dispatchGroup.notify(queue: .main) {
-            print("dispatchGroup notify")
+            print("Images All Uploaded: \(Date())")
             let orderedUploadImageURLs = uploadedImageURLs.compactMap { $0 }     // nil 값을 제거하고 URL 순서대로 정렬
             print("completion 콜백 호출 전: \(orderedUploadImageURLs)")
             completion(Array(orderedUploadImageURLs))     // 순서대로 정렬된 URL 배열로 완료 콜백 호출
@@ -929,7 +929,7 @@ extension WriteDiaryVC: UICollectionViewDataSource, UICollectionViewDelegate, UI
             }
             return cell
         } else {
-            // 마지막 셀에는 MapCollectionViewCell을 반환
+            // 마지막 셀을 제외한 indexPath까지는 Image Cell 할당
             if indexPath.item < imagesLocationInfo.count {
                 // 이미지 셀 구성
                 guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ImageCollectionViewCell.reuseIdentifier, for: indexPath) as? ImageCollectionViewCell else {
@@ -949,6 +949,7 @@ extension WriteDiaryVC: UICollectionViewDataSource, UICollectionViewDelegate, UI
                 }
                 return cell
             } else {
+                // 마지막 indexPath에는 Map cell을 할당
                 if shouldShowMap() {
                     // 맵 셀 구성
                     guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: MapCollectionViewCell.reuseIdentifier, for: indexPath) as? MapCollectionViewCell else {

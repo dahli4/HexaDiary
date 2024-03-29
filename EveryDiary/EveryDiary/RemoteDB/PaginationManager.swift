@@ -29,7 +29,7 @@ class PaginationManager {
             collection = collection.start(afterDocument: lastDocumentSnapshot)
         }
         
-        let query = collection.limit(to: 5)
+        let query = collection.limit(to: 15)
         
         query.addSnapshotListener { [weak self] (snapshot, error) in
             guard let self = self else { return }

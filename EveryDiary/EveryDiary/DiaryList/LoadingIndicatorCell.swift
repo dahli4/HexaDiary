@@ -13,7 +13,7 @@ class LoadingIndicatorCell: UICollectionViewCell {
     static let reuseIdentifier = "LoadingIndicatorCell"
     
     private lazy var activityIndicator: UIActivityIndicatorView = {
-        let indicator = UIActivityIndicatorView(style: .medium)
+        let indicator = UIActivityIndicatorView(style: .large)
         indicator.startAnimating()
         return indicator
     }()
@@ -21,7 +21,7 @@ class LoadingIndicatorCell: UICollectionViewCell {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupLayout()
-        contentView.backgroundColor = .mainCell
+        contentView.backgroundColor = .subTheme
         contentView.layer.shadowOpacity = 0.1
         contentView.layer.shadowColor = UIColor(named: "mainTheme")?.cgColor
         contentView.layer.shadowRadius = 3

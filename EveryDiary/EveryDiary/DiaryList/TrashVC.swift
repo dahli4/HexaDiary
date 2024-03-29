@@ -335,7 +335,7 @@ extension TrashVC: UICollectionViewDataSource {
             fatalError("Invalid view type")
         }
         let month = months[indexPath.section]
-        headerView.titleLabel.text = month
+        headerView.headerLabel.text = month
         return headerView
     }
     

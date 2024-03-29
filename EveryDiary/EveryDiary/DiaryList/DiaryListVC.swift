@@ -13,27 +13,24 @@ import SnapKit
 
 // 사용자가 작성한 일기 리스트를 보여주는 ViewController
 class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
-    // 다이어리 관리를 위한 변수
+    // Firestore, Firestorage
     private var diaryManager = DiaryManager()
     private var monthlyDiaries: [String: [DiaryEntry]] = [:]    // 월별로 정렬된 DiaryEntry
     private var months: [String] = []                           // 일기의 월별 구분을 위한 배열
     private var diaries: [DiaryEntry] = []                      // 사용자의 모든 DiaryEntry
-
-    // ContextMenu 관련 변수
-    private var currentLongPressedCell: JournalCollectionViewCell?
-    private var selectedIndexPath: IndexPath?
     
-    // Pagenation을 위한 변수
+    // Pagenation
     private let paginationManager = PaginationManager()         // 페이지네이션 관리
     private var isLoadingData: Bool = false                     // 데이터 로딩 중을 표시하는 플래그
+    private let imagePrefetcher = ImagePrefetcher()
     
+    // Debounce
     private var searchTimer: Timer? // 디바운싱을 위한 타이머
     private var isSearching: Bool = false
-  
+    
+    // Indicator
     private var isUploadingDiary: Bool = false                  // 데이터 전송 중을 표시하는 플래그
-    
-    private var searchDebounceTimer: Timer?
-    
+        
     // 화면 구성 요소 정의
     private lazy var themeLabel : UILabel = {
         let label = UILabel()
@@ -43,7 +40,7 @@ class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
         return label
     }()
     
-    // 검색 바
+    // NavigationBar Item
     private lazy var searchBar: UISearchBar = {
         let bounds = UIScreen.main.bounds
         let width = bounds.size.width - 130
@@ -52,8 +49,6 @@ class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
         searchBar.delegate = self
         return searchBar
     }()
-    
-    // NavigationBar Item 구성
     private lazy var magnifyingButton = setNavigationItem(
         imageNamed: "search",
         titleText: "돋보기",
@@ -70,7 +65,7 @@ class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
         for: #selector(cancelButtonTapped)
     )
     
-    // 일기 작성 버튼 구성
+    // 일기 작성 버튼
     private lazy var writeDiaryButton : UIButton = {
         var config = UIButton.Configuration.plain()
         let button = UIButton(configuration: config)
@@ -79,14 +74,8 @@ class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
         button.layer.shadowOpacity = 0.3
         button.layer.shadowOffset = CGSize(width: 0, height: 0)
         button.setImage(UIImage(named: "write"), for: .normal)
-        button.addTarget(self, action: #selector(tabWriteDiaryBTN), for: .touchUpInside)
+        button.addTarget(self, action: #selector(tabWriteDiaryButton), for: .touchUpInside)
         return button
-    }()
-    
-    private lazy var refreshControl: UIRefreshControl = {
-        let refreshControl = UIRefreshControl()
-        refreshControl.addTarget(self, action: #selector(handleRefresh(_:)), for: .valueChanged)
-        return refreshControl
     }()
     
     // 컬렉션 뷰 구성
@@ -107,6 +96,11 @@ class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
         collectionView.refreshControl = refreshControl
         return collectionView
     }()
+    private lazy var refreshControl: UIRefreshControl = {
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(handleRefresh(_:)), for: .valueChanged)
+        return refreshControl
+    }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -114,9 +108,9 @@ class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
         addSubviews()
         setLayout()
         setNavigationBar()
-//        loadDiaries()
         refreshDiaryData()
         
+        journalCollectionView.prefetchDataSource = self
         NotificationCenter.default.addObserver(self, selector: #selector(loginStatusChanged), name: .loginstatusChanged, object: nil)
     }
     
@@ -124,6 +118,8 @@ class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
         NotificationCenter.default.removeObserver(self)
     }
 }
+
+// MARK: - Refresh
 extension DiaryListVC {
     @objc private func handleRefresh(_ refreshControl: UIRefreshControl) {
         // 데이터 로딩 로직
@@ -132,7 +128,7 @@ extension DiaryListVC {
     }
 }
 
-// MARK: loadDiaries메서드, navigation관련
+// MARK: - loadDiaries메서드, navigation관련
 extension DiaryListVC {
     
     // NavigationBar 아이템 및 색상 설정
@@ -215,7 +211,7 @@ extension DiaryListVC {
         isSearching = false
         refreshDiaryData()
     }
-    @objc private func tabWriteDiaryBTN() {
+    @objc private func tabWriteDiaryButton() {
         let writeDiaryVC = WriteDiaryVC()
         writeDiaryVC.enterDiary(to: .writeNewDiary)
         writeDiaryVC.delegate = self
@@ -236,42 +232,43 @@ extension DiaryListVC {
     }
 }
 
-// MARK: CollectionView 관련 extension
+// MARK: CollectionViewDataSource
 extension DiaryListVC: UICollectionViewDataSource {
-    // 섹션 수 반환(월별로 구분)
+    // 섹션 : 월 구분
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        // DiaryEntry 배열을 사용하여 월별로 구분된 섹션의 수를 계산
-        
         return months.count
     }
-    // 각 섹션 별 아이템 수 반환
+    
+    // 월 별 아이템(일기) 수 반환
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         let month = months[section]
         let count = monthlyDiaries[month]?.count ?? 0
+        
         // 데이터를 전송 중이면, LoadingIndicatorCell을 위해 numberOfItem + 1
         return count + (isUploadingDiary ? 1 : 0)
     }
+    
     // 셀 구성
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let month = months[indexPath.section]
         guard let diariesForMonth = monthlyDiaries[month] else {
             fatalError("No diaries found for month: \(month)")
         }
-        
+        // 로딩 중이라면, 가장 상단 indexPath에 로딩 인디케이터 셀 반환
         if isUploadingDiary && indexPath.row == 0 {
-            // 로딩 인디케이터 셀 반환
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: LoadingIndicatorCell.reuseIdentifier, for: indexPath) as? LoadingIndicatorCell else {
                 fatalError("Unable to dequeue LoadingIndicatorCell")
             }
             return cell
         } else {
+            // DiaryCollectionView Cell
+            // 로딩 중이라면 indexPath.row > 0, 로딩 중이 아니라면 indexPath.row = 0 부터 배치
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: JournalCollectionViewCell.reuseIdentifier, for: indexPath) as? JournalCollectionViewCell else {
                 fatalError("Unable to dequeue JournalCollectionViewCell")
             }
             
-            // isLoadingData에 따라 index를 조절하는 변수
+            // isUploadingDiary에 따라 index를 조절하는 변수 adjustedIndex에 따라 DiaryEntry 호출
             let adjustedIndex = isUploadingDiary ? indexPath.row - 1 : indexPath.row
-            // 현재 셀에 해당하는 일기 찾기. isLoadingData = true일 때,
             let diary = diariesForMonth[adjustedIndex]
             
             // 날짜 포맷 변경
@@ -283,16 +280,17 @@ extension DiaryListVC: UICollectionViewDataSource {
                     content: diary.content,
                     weather: diary.weather,
                     emotion: diary.emotion,
-                    date: formattedDateString   // 변경된 날짜 형식 사용
+                    date: formattedDateString
                 )
                 
-                // 여러 이미지 중 첫번째 이미지로 셀 설정
+                // DiaryEntry의 첫번째 이미지를 호출
                 if let firstImageUrlString = diary.imageURL?.first, let imageUrl = URL(string: firstImageUrlString) {
-                    
                     // ImageCacheManager를 사용하는 loadImageAsync를 사용하여 비동기 이미지 다운로드
                     cell.loadImageAsync(url: imageUrl) { image in
                         // setImage로 이미지와 URL을 함께 전달하여 잘못된 indexPath에 이미지가 전달되는 현상 방지
-                        cell.setImage(image, for: imageUrl)
+                        if cell.loadingImageURL == imageUrl {
+                            cell.setImage(image, for: imageUrl)
+                        }
                     }
                 } else {
                     // 이미지 URL이 없을 경우 imageView를 숨김
@@ -309,11 +307,11 @@ extension DiaryListVC: UICollectionViewDataSource {
             fatalError("Invalid view type")
         }
         let month = months[indexPath.section]
-        headerView.titleLabel.text = month
+        headerView.headerLabel.text = month
         return headerView
     }
     
-    // cell 선택시
+    // didSelectItemAt
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let month = months[indexPath.section]
         
@@ -324,12 +322,12 @@ extension DiaryListVC: UICollectionViewDataSource {
             return
         }
         
+        // 배열의 범위를 벗어나는 선택을 방지하고, 선택한 월/일에 대한 일기 배열을 호출
         guard let diariesForMonth = monthlyDiaries[month], indexPath.row < diariesForMonth.count else { return }
         let diary = diariesForMonth[indexPath.row]
         
+        // 선택된 일기 정보를 전달하고, 수정(allowEdit) 버튼을 활성화
         let writeDiaryVC = WriteDiaryVC()
-        
-        // 선택된 일기 정보를 전달하고, 수정 버튼을 활성화
         writeDiaryVC.enterDiary(to: .showDiary, with: diary)
         writeDiaryVC.delegate = self
         
@@ -345,14 +343,40 @@ extension DiaryListVC: UICollectionViewDataSource {
     }
 }
 
+//MARK: - Prefetch
+extension DiaryListVC: UICollectionViewDataSourcePrefetching {
+    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+        for indexPath in indexPaths {
+            print("prefetch indexPath: \(indexPaths)")
+            // 각 cell의 indexPath에 할당하기 위한 DiaryEntry 찾기
+            let month = months[indexPath.section]
+            guard let diariesForMonth = monthlyDiaries[month], indexPath.row < diariesForMonth.count else { return }
+            let diary = diariesForMonth[indexPath.row]
+            
+            // DiaryEntry의 imageURL배열에서 첫번째 url을 사용하여 이미지를 prefetching
+            if let firstImageUrlString = diary.imageURL?.first, let imageURL = URL(string: firstImageUrlString) {
+                ImageCacheManager.shared.loadImage(from: imageURL) { _ in
+                    // 이미지를 로드하기 위한 부분. 현재 완료 콜백에서 UI업데이트는 필요하지 않음.
+                }
+            }
+        }
+    }
+}
+
+extension Array {
+    func safeFetch(at index: Int) -> Element? {
+        return indices.contains(index) ? self[index] : nil
+    }
+}
+
 // MARK: Context Menu 관련
 extension DiaryListVC {
-    // preview가 없는 메서드
+    // preview가 없는 contextMenu
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { suggestedActions -> UIMenu? in
             // "수정" 액션 생성
             let editAction = UIAction(title: "수정", image: UIImage(systemName: "pencil")) { action in
-                // "수정" 선택 시 실행할 코드
+                // "수정" 선택 시, 일기를 WriteDiaryVC로 전달하고 업데이트 버튼 활성화
                 let month = self.months[indexPath.section]
                 if let diary = self.monthlyDiaries[month]?[indexPath.row] {
                     let writeDiaryVC = WriteDiaryVC()
@@ -366,7 +390,7 @@ extension DiaryListVC {
             }
             // "휴지통" 액션 생성
             let deleteAction = UIAction(title: "휴지통", image: UIImage(systemName: "trash"), attributes: .destructive) { action in
-                // "휴지통" 선택 시 실행할 코드
+                // DiaryEntry의 isDeleted를 true, deleteDate를 현재시간으로 설정하고 DiaryEntry 업데이트
                 let month = self.months[indexPath.section]
                 if let diary = self.monthlyDiaries[month]?[indexPath.row], let diaryID = diary.id {
                     var updatedDiary = diary
@@ -382,9 +406,8 @@ extension DiaryListVC {
                             }
                         }
                     }
-                    let alert = UIAlertController(title: "휴지통으로 이동하였습니다.", message: nil, preferredStyle: .actionSheet)
-                    self.present(alert, animated: true, completion: nil)
-                    Timer.scheduledTimer(withTimeInterval: 0.7, repeats: false, block: { _ in alert.dismiss(animated: true, completion: nil)})
+                    // 휴지통 액션 완료 시, 메세지 호출
+                    TemporaryAlert.presentTemporaryMessage(with: "삭제 완료", message: "휴지통으로 이동하였습니다.", interval: 1.0, for: self)
                 }
             }
             // "수정"과 "삭제" 액션을 포함하는 메뉴 생성
@@ -408,7 +431,7 @@ extension DiaryListVC: UICollectionViewDelegateFlowLayout {
 
 //MARK: SearchBar 관련 메서드
 extension DiaryListVC: UISearchBarDelegate {
-    //FIXME: 기존 검색 메서드
+    // debounce 적용
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if searchText.isEmpty {
             isSearching = false // 검색 중 플래그 해제
@@ -422,6 +445,7 @@ extension DiaryListVC: UISearchBarDelegate {
         }
     }
     
+    // return 검색
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         searchTimer?.invalidate() // 검색 버튼을 누르면 현재 진행 중인 검색을 중지합니다.
         guard let searchText = searchBar.text, !searchText.isEmpty else {
@@ -430,6 +454,7 @@ extension DiaryListVC: UISearchBarDelegate {
         searchDiaries(with: searchText) // 검색을 수행합니다.
     }
     
+    // DiaryEntry 전체를 fetch하여, 검색
     private func searchDiaries(with searchText: String) {
         diaryManager.fetchDiaries { [weak self] (diaries, error) in
             guard let self = self else { return }
@@ -507,27 +532,14 @@ extension DiaryListVC {
     }
 }
 
-// 문자열 배열에서 중복 제거를 위한 확장
-extension Array where Element: Equatable {
-    func unique() -> [Element] {
-        var uniqueValues: [Element] = []
-        for item in self {
-            if !uniqueValues.contains(item) {
-                uniqueValues.append(item)
-            }
-        }
-        return uniqueValues
-    }
-}
-
 //MARK: - 일기 작성, 수정 시 data reload
 extension DiaryListVC : DiaryUpdateDelegate {
     func diaryDidUpdate() {
-//        loadDiaries()
         refreshDiaryData()
     }
 }
 
+//MARK: - Pagenation
 extension DiaryListVC: UICollectionViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard !isSearching else { return } // 검색 중일 때는 페이지네이션 비활성화
@@ -536,9 +548,11 @@ extension DiaryListVC: UICollectionViewDelegate {
         let contentHeight = scrollView.contentSize.height
         let height = scrollView.frame.size.height
         
-        let triggerPoint = contentHeight - height
+        let triggerPoint = contentHeight - height - 1000
         
         if offsetY > triggerPoint {
+            print("offsetY: \(offsetY)")
+            print("triggerPoint: \(triggerPoint)")
             guard !isLoadingData else { return }
             isLoadingData = true //
             getPage()
@@ -546,6 +560,7 @@ extension DiaryListVC: UICollectionViewDelegate {
     }
     
     func getPage() {
+        print(#function)
         guard !isSearching else { return } // 검색 중일 때는 페이지네이션 비활성화
 
         paginationManager.getNextPage { [weak self] newDiaries in
@@ -564,9 +579,15 @@ extension DiaryListVC: UICollectionViewDelegate {
             }
             
             self.diaries.append(contentsOf: uniqueNewDiaries)
-            
             self.organizeDiariesByMonth(diaries: self.diaries)
             
+//            // 이미지 prefetching 시작
+//            let imageUrls = uniqueNewDiaries.compactMap { diary -> URL? in
+//                guard let firstImageUrlString = diary.imageURL?.first else { return nil }
+//                return URL(string: firstImageUrlString)
+//            }
+//            ImageCacheManager.shared.prefetchImages(for: imageUrls)
+//            
             DispatchQueue.main.async {
                 self.journalCollectionView.reloadData()
                 self.isLoadingData = false
@@ -589,17 +610,18 @@ extension DiaryListVC: UICollectionViewDelegate {
                     self.journalCollectionView.reloadData()
                 }
             } else {
-//                print("Failed to fetch new diaries.")
+                print("Failed to fetch new diaries.")
                 return
             }
         }
     }
 }
 
+//MARK: - Indicator Cell 노출 플래그 수정
 extension DiaryListVC: WriteDiaryDelegate {
     func diaryUploadDidStart() {
-        print("diaryUploadDidStart")
         isUploadingDiary = true
+        print("\(#function): \(Date())")
         print("isUploadingDiary: \(isUploadingDiary)")
         DispatchQueue.main.async {
             // 로딩 인디케이터 셀 표시를 위해 컬렉션 뷰 새로고침
@@ -608,14 +630,8 @@ extension DiaryListVC: WriteDiaryDelegate {
     }
     
     func diaryUploadDidFinish() {
-        print("diaryUploadDidFinish")
         isUploadingDiary = false
-        print("isUploadingDiary: \(isUploadingDiary)")
-        print("Finish Uploading Diary..")
-        DispatchQueue.main.async {
-            // 로딩 인디케이터 셀 제거를 위해 컬렉션 뷰 새로고침
-            self.journalCollectionView.reloadData()
-        }
+        print("\(#function): \(Date())")
         getPage()
     }
 }
