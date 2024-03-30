@@ -10,6 +10,7 @@ import UIKit
 import SnapKit
 
 class DetailVC: UIViewController {
+    private var buildings = BuildingView()
     private var firstLayer = CAShapeLayer()
     private var secondLayer = CAShapeLayer()
     private let windowLayer = CALayer()
@@ -40,8 +41,8 @@ class DetailVC: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        drawCacheBackBuildingPath()
-        drawCacheBuildingPath()
+//        drawCacheBackBuildingPath()
+//        drawCacheBuildingPath()
         drawWindows()
     }
     
@@ -135,12 +136,19 @@ class DetailVC: UIViewController {
 
 extension DetailVC {
     private func addSubView() {
+        view.addSubview(buildings)
         view.addSubview(detailImageView)
+        view.addSubview(buildings)
         view.addSubview(detailView)
+
         view.addSubview(closeButton)
     }
     
     private func autoLayout() {
+        buildings.snp.makeConstraints { make in
+            make.leading.trailing.equalTo(view.safeAreaLayoutGuide)
+            make.top.bottom.equalTo(view.safeAreaLayoutGuide).offset(100)
+        }
         detailImageView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }

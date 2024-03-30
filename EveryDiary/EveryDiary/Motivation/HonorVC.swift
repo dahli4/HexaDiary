@@ -127,7 +127,7 @@ extension HonorVC: UICollectionViewDelegateFlowLayout, UICollectionViewDataSourc
         }
         cell.images.image = nil
         
-        let yearMonth = Array(dataByYearMonth.keys)[indexPath.section]
+        let yearMonth = sortedYearMonths[indexPath.section]
         let numberOfDays = dataByYearMonth[yearMonth]?.count ?? 0
         
         cell.configureImage(withNumberOfDays: numberOfDays)
