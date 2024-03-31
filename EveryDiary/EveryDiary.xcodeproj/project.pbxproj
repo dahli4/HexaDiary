@@ -10,7 +10,6 @@
 		1A03BDA22B92F910008C13DC /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 1A03BDA12B92F910008C13DC /* FirebaseStorage */; };
 		1AF880D32B8DB5A2004076EB /* Api.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1AF880D22B8DB5A2004076EB /* Api.plist */; };
 		3F92D7D82BB5961500BDD34E /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F92D7D72BB5961500BDD34E /* Extensions.swift */; };
-		3F92D7DE2BB68C3F00BDD34E /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3F92D7DD2BB68C3F00BDD34E /* GoogleService-Info.plist */; };
 		3FB6D74E2BB2E8EF0098F29F /* LoadingIndicatorCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FB6D74D2BB2E8EF0098F29F /* LoadingIndicatorCell.swift */; };
 		3FB6D7502BB316820098F29F /* DiaryUploadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FB6D74F2BB316820098F29F /* DiaryUploadManager.swift */; };
 		3FF0FEEA2BB14F140045EBB7 /* TemporaryAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FF0FEE92BB14F140045EBB7 /* TemporaryAlert.swift */; };
@@ -111,7 +110,6 @@
 		3F7831552BA9EC0700354211 /* MapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapManager.swift; sourceTree = "<group>"; };
 		3F7831572BA9FE4C00354211 /* KeyboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardManager.swift; sourceTree = "<group>"; };
 		3F92D7D72BB5961500BDD34E /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
-		3F92D7DD2BB68C3F00BDD34E /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "../../../../Downloads/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		3F9E0A4E2BA2FEA2004BF1CB /* ImageCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCollectionViewCell.swift; sourceTree = "<group>"; };
 		3F9E0A522BA352E4004BF1CB /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		3F9E0A542BA35E72004BF1CB /* MapCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapCollectionViewCell.swift; sourceTree = "<group>"; };
@@ -304,7 +302,6 @@
 				6BB3CE342B85EFB1005BC3E1 /* TabBarController.swift */,
 				6BABC3732B85D109009267B3 /* LaunchScreen.storyboard */,
 				6BABC3712B85D109009267B3 /* Assets.xcassets */,
-				3F92D7DD2BB68C3F00BDD34E /* GoogleService-Info.plist */,
 				6BABC3762B85D109009267B3 /* Info.plist */,
 				D2F0EF882BAC5A32008736F1 /* PrivacyInfo.xcprivacy */,
 				1AF880D22B8DB5A2004076EB /* Api.plist */,
@@ -482,7 +479,6 @@
 			files = (
 				6B95C0512B8C7A5A00DBB175 /* SFProRounded-Regular.otf in Resources */,
 				1AF880D32B8DB5A2004076EB /* Api.plist in Resources */,
-				3F92D7DE2BB68C3F00BDD34E /* GoogleService-Info.plist in Resources */,
 				6BABC3752B85D109009267B3 /* LaunchScreen.storyboard in Resources */,
 				6B95C0382B8C7A3B00DBB175 /* SFProDisplay-Bold.otf in Resources */,
 				6BABC3722B85D109009267B3 /* Assets.xcassets in Resources */,
