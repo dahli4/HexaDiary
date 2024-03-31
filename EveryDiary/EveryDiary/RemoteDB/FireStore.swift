@@ -277,4 +277,61 @@ class DiaryManager {
             }
         }
     }
+    
+    // 휴지통 비우기
+    func clearAllDeletedDiaries(completion: @escaping (Bool, Error?) -> Void) {
+        guard let userID = getUserID() else {
+            completion(false, NSError(domain: "Auth Error_Clear", code: 401, userInfo: [NSLocalizedDescriptionKey: "사용자 인증에 실패했습니다."]))
+            return
+        }
+        
+        // isDeleted = true인 모든 문서를 조회.
+        let diariesReference = db.collection("users").document(userID).collection("diaries").whereField("isDeleted", isEqualTo: true)
+        
+        diariesReference.getDocuments { [weak self] (querySnapshot, error) in
+            // 로드에 실패한 경우
+            guard let self = self else { return }
+            if let error = error {
+                completion(false, error)
+                return
+            }
+            
+            // 문서가 없는 경우, 에러 없이 nil 반환
+            guard let documents = querySnapshot?.documents, !documents.isEmpty else {
+                completion(false, nil)
+                return
+            }
+            
+            let dispatchGroup = DispatchGroup()
+            
+            for document in documents {
+                if let diary = try? document.data(as: DiaryEntry.self) {
+                    // 이미지 URL이 있을 경우 삭제
+                    if let imageURLs = diary.imageURL, !imageURLs.isEmpty {
+                        for url in imageURLs {
+                            dispatchGroup.enter()
+                            FirebaseStorageManager.deleteImage(urlString: url) { error in
+                                if let error = error {
+                                    print("Error deleting image from Firebase Storage: \(error)")
+                                }
+                                dispatchGroup.leave()
+                            }
+                        }
+                    }
+                    // 문서 삭제
+                    dispatchGroup.enter()
+                    document.reference.delete { error in
+                        if let error = error {
+                            print("Error removing document: \(error.localizedDescription)")
+                        }
+                        dispatchGroup.leave()
+                    }
+                }
+            }
+            dispatchGroup.notify(queue: .main) {
+                // 모든 삭제 작업이 성공적으로 완료되었음을 나타내는 true 반환
+                completion(true, nil)
+            }
+        }
+    }
 }

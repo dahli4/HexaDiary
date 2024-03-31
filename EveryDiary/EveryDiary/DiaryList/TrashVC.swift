@@ -18,17 +18,15 @@ class TrashVC: UIViewController {
     private var months: [String] = []
     private var diaries: [DiaryEntry] = []
     
-    // contextMenu 관련 변수
-    private var currentLongPressedCell: TrashCollectionViewCell?
-    private var selectedIndexPath: IndexPath?
-    
+    // Pagination
     private let paginationManager = PaginationManager()
     private var isLoadingData: Bool = false
     
+    // Debounce
     private var searchTimer: Timer? // 디바운싱을 위한 타이머
     private var isSearching: Bool = false
   
-    // 화면 구성 요소
+    // NavigationBar Item
     private lazy var searchBar: UISearchBar = {
         let bounds = UIScreen.main.bounds
         let width = bounds.size.width - 145
@@ -81,9 +79,6 @@ class TrashVC: UIViewController {
         setLayout()
         setNavigationBar()
     }
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-    }
 }
 
 // MARK: loadDiaries메서드, navigation관련
@@ -120,6 +115,7 @@ extension TrashVC {
     @objc private func seeMoreButtonTapped() {
         // 액션 시트 생성
         let seeMoreActionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        
         // "모두 복원" 액션
         let restoreAction = UIAlertAction(title: "모두 복원", style: .default) { [weak self] _ in
             guard let self = self else { return }
@@ -137,43 +133,58 @@ extension TrashVC {
                 }
             }
             refreshDiaryData()
-            //            self.loadDiaries()
         }
         
         // "비우기" 액션
-        let deleteAction = UIAlertAction(title: "비우기", style: .destructive) { [weak self] _ in
+        let clearAllDeletedAction = UIAlertAction(title: "비우기", style: .destructive) { [weak self] _ in
             guard let self = self else { return }
-            // 모든 휴지통 일기를 삭제하는 로직
-            let deletedDiaries = self.monthlyDiaries.flatMap { $0.value }.filter { $0.isDeleted }
             
-            if deletedDiaries.isEmpty {
-                self.presentAlert(with: "휴지통이 이미 비어있습니다.")
-                return
-            }
-            
-            // 삭제 작업을 시작한다면, getPage가 호출되지 않도록 isLoadingData 플래그를 true로 설정
-            self.isLoadingData = true
-            
-            let dispatchGroup = DispatchGroup()
-            for diary in deletedDiaries {
-                guard let diaryID = diary.id else { continue }
-                dispatchGroup.enter()
-                
-                // 각 일기에 대해 deleteDiary 호출
-                self.diaryManager.deleteDiary(diaryID: diaryID, imageURL: diary.imageURL ?? []) { error in
+            // Firestore에서 isDeleted = true인 모든 문서를 조회합니다.
+            self.diaryManager.clearAllDeletedDiaries { [weak self] isSuccess, error in
+                guard let self = self else { return }
+                DispatchQueue.main.async {
                     if let error = error {
-                        print("Error deleting diary: \(error.localizedDescription)")
+                        TemporaryAlert.presentTemporaryMessage(with: "오류 발생", message: "비우기 중 오류가 발생했습니다.: \(error.localizedDescription)", interval: 1.0, for: self)
+                    } else if isSuccess {
+                        // 성공적으로 비우기가 완료되었을 때 알림 및 목록 refresh
+                        TemporaryAlert.presentTemporaryMessage(with: "휴지통 비우기 완료", message: "모든 항목이 삭제되었습니다.", interval: 1.0, for: self)
+                        self.refreshDiaryData()
+                    } else {
+                        TemporaryAlert.presentTemporaryMessage(with: "빈 휴지통", message: "휴지통이 이미 비어있습니다.", interval: 1.0, for: self)
                     }
-                    dispatchGroup.leave()
                 }
             }
-            // 비동기 작업이 완료된 후 호출할 메서드
-            dispatchGroup.notify(queue: .main) {
-                // 모든 삭제 작업이 완료된 후에 isLoadingData를 false로 설정
-                self.isLoadingData = false
-                self.refreshDiaryData()
-                self.presentAlert(with: "휴지통이 비워졌습니다.")
-            }
+//            // 모든 휴지통 일기를 삭제하는 로직
+//            let deletedDiaries = self.monthlyDiaries.flatMap { $0.value }.filter { $0.isDeleted }
+//            
+//            if deletedDiaries.isEmpty {
+//                self.presentAlert(with: "휴지통이 이미 비어있습니다.")
+//                return
+//            }
+//            
+//            // 삭제 작업을 시작한다면, getPage가 호출되지 않도록 isLoadingData 플래그를 true로 설정
+//            self.isLoadingData = true
+//            
+//            let dispatchGroup = DispatchGroup()
+//            for diary in deletedDiaries {
+//                guard let diaryID = diary.id else { continue }
+//                dispatchGroup.enter()
+//                
+//                // 각 일기에 대해 deleteDiary 호출
+//                self.diaryManager.deleteDiary(diaryID: diaryID, imageURL: diary.imageURL ?? []) { error in
+//                    if let error = error {
+//                        print("Error deleting diary: \(error.localizedDescription)")
+//                    }
+//                    dispatchGroup.leave()
+//                }
+//            }
+//            // 비동기 작업이 완료된 후 호출할 메서드
+//            dispatchGroup.notify(queue: .main) {
+//                // 모든 삭제 작업이 완료된 후에 isLoadingData를 false로 설정
+//                self.isLoadingData = false
+//                self.refreshDiaryData()
+//                self.presentAlert(with: "휴지통이 비워졌습니다.")
+//            }
         }
         
         // 취소 액션
@@ -181,15 +192,9 @@ extension TrashVC {
         
         // 액션 시트에 액션 추가 및 표시
         seeMoreActionSheet.addAction(restoreAction)
-        seeMoreActionSheet.addAction(deleteAction)
+        seeMoreActionSheet.addAction(clearAllDeletedAction)
         seeMoreActionSheet.addAction(cancelAction)
         present(seeMoreActionSheet, animated: true)
-    }
-    
-    private func presentAlert(with message: String) {
-        let alert = UIAlertController(title: message, message: nil, preferredStyle: .actionSheet)
-        self.present(alert, animated: true, completion: nil)
-        Timer.scheduledTimer(withTimeInterval: 0.7, repeats: false, block: { _ in alert.dismiss(animated: true, completion: nil)})
     }
     
     private func setNavigationItem(imageNamed name: String, titleText: String, for action: Selector) -> UIBarButtonItem {
