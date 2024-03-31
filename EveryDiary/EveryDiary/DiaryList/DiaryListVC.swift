@@ -19,7 +19,7 @@ class DiaryListVC: UIViewController, UIAdaptivePresentationControllerDelegate {
     private var months: [String] = []                           // 일기의 월별 구분을 위한 배열
     private var diaries: [DiaryEntry] = []                      // 사용자의 모든 DiaryEntry
     
-    // Pagenation
+    // Pagination
     private let paginationManager = PaginationManager()         // 페이지네이션 관리
     private var isLoadingData: Bool = false                     // 데이터 로딩 중을 표시하는 플래그
     

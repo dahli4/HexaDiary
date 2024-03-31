@@ -89,11 +89,17 @@ class TrashCollectionViewCell: UICollectionViewCell {
     func setTrashCollectionViewCell(title: String, content: String, weather: String, emotion: String, date: String, imageName: String? = nil) {
         contentTitle.text = title
         contentTextView.text = content
-        weatherIcon.image = UIImage(named: weather)
-        emotionIcon.image = UIImage(named: emotion)
         dateOfWriting.text = date
-        if let imageName = imageName {
-            imageView.image = UIImage(named: imageName)
+        // 날씨 아이콘 업데이트
+        if !weather.isEmpty, let weatherImage = UIImage(named: weather) {
+            weatherIcon.image = weatherImage
+        } else {
+            weatherIcon.image = nil
+        }
+        if !emotion.isEmpty, let emotionImage = UIImage(named: emotion) {
+            emotionIcon.image = emotionImage
+        } else {
+            emotionIcon.image = nil
         }
     }
 }
